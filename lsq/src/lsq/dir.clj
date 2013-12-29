@@ -49,10 +49,10 @@
   "check files won't overwrite existing files."
   [dirname in out offset]
   (let [same-seq (same-fseq? in out)]
-  (when (not same-seq) (or (and (same-seq (zero? offset))))
-    (doseq [f (get-filepaths dirname out)]
-      (if (.exists (file f))
-        (throw (Exception. (str "File would be overwritten!: " f))))))))
+    (when (not same-seq) (or (and same-seq (zero? offset)))
+      (doseq [f (get-filepaths dirname out)]
+        (if (.exists (file f))
+          (throw (Exception. (str "File would be overwritten!: " f))))))))
 
 (defn- rename-filepairs [filepairs reverse?]
   (let [rename-order (if reverse? (reverse filepairs) filepairs)]
@@ -73,15 +73,22 @@
         (do-overwrite-check dirname sin sout offset)
         (rename-filepairs filepairs (> offset 0))))))
 
-(defn rename-fseq [dirname pattern-in pattern-out from to offset]
-    (let [dir (parse-dir dirname)]
-      (let [fseq (fseq-for-pattern dir pattern-in)]
-        (if (nil? fseq)
-          (println "Nothing to do!")
-          (let [
-                from (if (nil? from) (first-idx fseq) from)
-                to (if (nil? to) (last-idx fseq) to)]
-            (do-rename dirname fseq (parse-pattern pattern-out) from to offset))))))
+(defn- calc-offset [fseq offset start]
+  "Calculate the offset given a (possibly nil) start value."
+  (if (nil? start)
+    (if-not (nil? offset) offset 0)
+    (- start (first-idx fseq))))
+
+(defn rename-fseq [dirname pattern-in pattern-out from to offset start]
+  (let [dir (parse-dir dirname)]
+    (let [fseq (fseq-for-pattern dir pattern-in)]
+      (if (nil? fseq)
+        (println "Nothing to do!")
+        (let [
+              from (if (nil? from) (first-idx fseq) from)
+              to (if (nil? to) (last-idx fseq) to)
+              off (calc-offset fseq offset start)]
+          (do-rename dirname fseq (parse-pattern pattern-out) from to off))))))
 
 (defn lsq-dir [dirname]
   (let [dir (parse-dir dirname)]
