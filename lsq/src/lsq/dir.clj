@@ -23,18 +23,20 @@
   (let [all (.listFiles (directory dirname))]
     (sort-by #(.getName %) all)))
 
-(defn- parse-dir-raw [dirname] 
-  (loop [all (sorted-file-list dirname) dir (->Dir [] [] [])]
-    (if (empty? all)
-      dir
-      (let [nextf (first all) others (rest all)]
-        (let [namef (.getName nextf)]
-        (if (.isDirectory nextf)
-          (recur others (add-dir dir namef))
-          (let [p (parse-filename namef)]
-            (if (nil? p)
-              (recur others (add-junk dir namef))
-              (recur others (add-fseq dir p))))))))))
+(defn- parse-dir-raw [dirname]
+  (let [test-fn (fn [dir item]
+                  (let [item-name (.getName item)]
+                    ; if it's not a directory it must be either
+                    ; a sequence name or something we don't care about
+                    (if (.isDirectory item)
+                      (add-dir dir item-name)
+                      (let [try-parse (parse-filename item-name)]
+                        (if (nil? try-parse)
+                          (add-junk dir item-name)
+                          (add-fseq dir try-parse))))))
+        files (sorted-file-list dirname)
+        initial (->Dir [] [] [])]
+    (reduce test-fn initial files))) 
 
 (defn- condense-dir [dir]
   (let [fseqs (:fseqs dir)]

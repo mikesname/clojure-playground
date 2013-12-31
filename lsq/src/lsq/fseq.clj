@@ -33,16 +33,14 @@
   into a set of subsequences based on a function that determines if
   two ajacent values belong in the same sub sequence."
   [belong-fn coll]
-  (loop [sets [] coll coll]
-    ; terminal condition
-    (if (empty? coll)
-      sets
-      (if (empty? sets)
-        (recur [[(first coll)]] (rest coll))
-        (let [last-item (last (last sets)) next-item (first coll)]
-          (if (belong-fn last-item next-item)
-            (recur (conj (into [] (butlast sets)) (into [] (conj (last sets) next-item))) (rest coll))
-            (recur (into [] (conj sets [next-item])) (rest coll))))))))
+  (let [join-fn (fn [acc, item]
+              (if (empty? acc)
+                [[item]]
+                (let [last-item (last (last acc))]
+                  (if (belong-fn last-item item)
+                    (conj (into [] (butlast acc)) (into [] (conj (last acc) item)))
+                    (into [] (conj acc [item]))))))]
+    (reduce join-fn [] coll)))
 
 (defn separate-fseqs [fseqs] (extract-subseqs #(same-fseq? %1 %2) fseqs)) 
 
