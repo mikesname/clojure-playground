@@ -6,6 +6,12 @@
 
 (use ['lsq.fseq])
 
+; terminal color codes
+(def ansi-reset "\u001B[0m")
+(def ansi-bold "\u001B[1m")
+
+(defn bold [s] (str ansi-bold s ansi-reset))
+
 (defrecord Dir [fseqs dirs junk])
 
 (defn add-dir [dir value]
@@ -95,7 +101,9 @@
 (defn lsq-dir [dirname]
   (let [dir (parse-dir dirname)]
     (doseq [fseq (:fseqs dir)]
-      (println (show-fseq fseq)))
+      (if (broken? fseq)
+        (println (bold (show-fseq fseq)))
+        (println (show-fseq fseq))))
     (doseq [dirname (:dirs dir)]
       (println dirname))
     (doseq [junkname (:junk dir)]

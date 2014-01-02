@@ -64,6 +64,9 @@
     1 (first arr)
     (str (first arr) "-" (last arr))))
 
+(defn broken? [fseq]
+  (true? (some #(not (= (first %) (dec (last %)))) (partition 2 1 (:idx fseq)))))
+
 (defn get-subseqs [arr] 
   (extract-subseqs #(= (inc %1) %2) arr))
 
