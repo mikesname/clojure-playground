@@ -1,0 +1,9 @@
+[
+{:db/id #db/id[:db.part/user -1000001] :graph.element/type :graph.element.type/vertex :db/ident "1"}
+{:db/id #db/id[:db.part/user -1000002] :graph.element/type :graph.element.type/vertex :db/ident "2"}
+{:db/id #db/id[:db.part/user -1000003] :graph.element/type :graph.element.type/vertex :db/ident "3"}
+
+{:db/id #db/id[:db.part/user -1000004] :graph.element/type :graph.element.type/edge :graph.edge/label "KNOWS"
+    :graph.edge/outVertex #db/id[:db.part/user -1000001] :graph.edge/inVertex #db/id[:db.part/user -1000002] }
+]
+
