@@ -89,6 +89,15 @@
                  :params [db]
                  :code "(throw (Exception. \"rolling back\"))" }}
 
+    ;; Database function to abort the current TX
+    { :db/id #db/id[:db.part/user]
+         :db/ident :my-query
+         :db/fn #db/fn {
+                 :lang "java"
+                 :params [database]
+                 ;;:code "(q '[:find ?outV :where [ ?outV :db/ident \"1\" ]] database)" }}
+                 :code "return \"Hello, world\";" }}
+
     ;; Add new graph partition
    {:db/id #db/id[:db.part/db]
     :db/ident :graph

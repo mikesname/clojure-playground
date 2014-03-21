@@ -23,3 +23,7 @@
 ;; submit data transaction
 @(d/transact conn data-tx)
 
+;; query something
+(println
+  (d/q '[:find ?outV :in $ ?id :where [ ?outV :db/ident ?id ]] (d/db conn), "1"))
+
