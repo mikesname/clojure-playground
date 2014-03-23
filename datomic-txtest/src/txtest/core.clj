@@ -43,17 +43,28 @@
 (defn list-edges []
   (list-elements :graph.element.type/edge))
 
+;; NB: Fails if there are no labels!
+(defn get-edges [v direction labels]
+  (case direction
+    :in (get-in-edges v labels)
+    :out (get-out-edges v labels)
+    :both (concat
+            (get-in-edges v labels)
+            (get-out-edges v labels))))
+
 (defn get-out-edges [v labels]
   (d/q '[:find ?edge ?uuid
          :in $ ?id [?label ...]
-         :where [?edge :graph.edge/outVertex ?id] [?edge :graph.element/id ?uuid ]
-         [ ?edge :graph.edge/label ?label ]] dbval v labels))
+         :where [?edge :graph.edge/outVertex ?id]
+                [?edge :graph.element/id ?uuid ]
+                [ ?edge :graph.edge/label ?label ]] dbval v labels))
 
 (defn get-in-edges [v labels]
   (d/q '[:find ?edge ?uuid
          :in $ ?id [?label ...]
-         :where [?edge :graph.edge/inVertex ?id] [?edge :graph.element/id ?uuid ]
-         [ ?edge :graph.edge/label ?label ]] dbval v labels))
+         :where [?edge :graph.edge/inVertex ?id]
+                [?edge :graph.element/id ?uuid ]
+                [ ?edge :graph.edge/label ?label ]] dbval v labels))
 
 (defn id-from-uuid [uuid]
   (d/q '[:find ?v 
