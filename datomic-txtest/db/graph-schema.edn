@@ -10,6 +10,15 @@
      :db/index true
      :db.install/_attribute :db.part/db }
 
+     ;; External element id
+    {:db/id #db/id[:db.part/db]
+     :db/ident  :graph.element/id
+     :db/valueType :db.type/uuid
+     :db/cardinality :db.cardinality/one
+     :db/doc "The external ID of an element"
+     :db/unique :db.unique/identity
+     :db.install/_attribute :db.part/db }
+
      ;; The graph vertex element type
     {:db/id #db/id[:db.part/user]
      :db/ident :graph.element.type/vertex }
@@ -88,15 +97,6 @@
                  :lang "clojure"
                  :params [db]
                  :code "(throw (Exception. \"rolling back\"))" }}
-
-    ;; Database function to abort the current TX
-    { :db/id #db/id[:db.part/user]
-         :db/ident :my-query
-         :db/fn #db/fn {
-                 :lang "java"
-                 :params [database]
-                 ;;:code "(q '[:find ?outV :where [ ?outV :db/ident \"1\" ]] database)" }}
-                 :code "return \"Hello, world\";" }}
 
     ;; Add new graph partition
    {:db/id #db/id[:db.part/db]

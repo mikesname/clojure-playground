@@ -1,7 +1,7 @@
 (ns txtest.core
   (:gen-class))
 
-(use '[datomic.api :only [q db] :as d])
+(require '[datomic.api :as d])
 
 (def uri "datomic:mem://graphtest")
 
@@ -12,18 +12,60 @@
 (def conn (d/connect uri))
 
 ;; parse schema dtm file
-(def schema-tx (read-string (slurp "db/graph-schema.dtm")))
+(def schema-tx (read-string (slurp "db/graph-schema.edn")))
 
 ;; submit schema transaction
 @(d/transact conn schema-tx)
 
+;; parse property definition file
+(def property-schema-tx (read-string (slurp "db/property-schema.edn")))
+
+;; submit data transaction
+@(d/transact conn property-schema-tx)
+
 ;; parse data dtm file
-(def data-tx (read-string (slurp "db/graph.dtm")))
+(def data-tx (read-string (slurp "db/graph.edn")))
 
 ;; submit data transaction
 @(d/transact conn data-tx)
 
-;; query something
-(println
-  (d/q '[:find ?outV :in $ ?id :where [ ?outV :db/ident ?id ]] (d/db conn), "1"))
+(def dbval (db conn))
+
+(defn list-elements [element-type]
+  (d/q '[:find ?v ?uuid
+         :in $ ?t
+         :where [?v :graph.element/type ?t]
+                [?v :graph.element/id ?uuid]] dbval element-type))
+
+(defn list-vertices []
+  (list-elements :graph.element.type/vertex))
+
+(defn list-edges []
+  (list-elements :graph.element.type/edge))
+
+(defn get-out-edges [v labels]
+  (d/q '[:find ?edge ?uuid
+         :in $ ?id [?label ...]
+         :where [?edge :graph.edge/outVertex ?id] [?edge :graph.element/id ?uuid ]
+         [ ?edge :graph.edge/label ?label ]] dbval v labels))
+
+(defn get-in-edges [v labels]
+  (d/q '[:find ?edge ?uuid
+         :in $ ?id [?label ...]
+         :where [?edge :graph.edge/inVertex ?id] [?edge :graph.element/id ?uuid ]
+         [ ?edge :graph.edge/label ?label ]] dbval v labels))
+
+(defn id-from-uuid [uuid]
+  (d/q '[:find ?v 
+         :in $ ?uuid 
+         :where [?v :graph.element/id ?uuid]] dbval uuid))
+
+(def marko
+  (ffirst (id-from-uuid #uuid "550e8400-e29b-41d4-a716-446655440000")))
+
+(def stephen
+  (ffirst (id-from-uuid #uuid "550e8400-e29b-41d4-a716-446655440001")))
+
+(def knowsEdge
+  (ffirst (id-from-uuid #uuid "550e8400-e29b-41d4-a716-446655440002")))
 
