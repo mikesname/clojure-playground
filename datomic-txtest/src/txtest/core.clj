@@ -29,7 +29,7 @@
 ;; submit data transaction
 @(d/transact conn data-tx)
 
-(def dbval (db conn))
+(def dbval (d/db conn))
 
 (defn list-elements [element-type]
   (d/q '[:find ?v ?uuid
@@ -42,15 +42,6 @@
 
 (defn list-edges []
   (list-elements :graph.element.type/edge))
-
-;; NB: Fails if there are no labels!
-(defn get-edges [v direction labels]
-  (case direction
-    :in (get-in-edges v labels)
-    :out (get-out-edges v labels)
-    :both (concat
-            (get-in-edges v labels)
-            (get-out-edges v labels))))
 
 (defn get-out-edges [v labels]
   (d/q '[:find ?edge ?uuid
@@ -65,6 +56,34 @@
          :where [?edge :graph.edge/inVertex ?id]
                 [?edge :graph.element/id ?uuid ]
                 [ ?edge :graph.edge/label ?label ]] dbval v labels))
+
+;; NB: Fails if there are no labels!
+(defn get-edges [v direction labels]
+  (case direction
+    :in (get-in-edges v labels)
+    :out (get-out-edges v labels)
+    :both (d/q '[:find ?e 
+                 :in $ ?v [?d ...] [?label ...]
+                 :where [?e ?d ?v]
+                        [?e graph.edge/label ?label]]
+               dbval v [:graph.edge/outVertex :graph.edge/inVertex] labels)))
+
+;; The elusive get-vertices function. This is complicated in the
+;; BOTH direction because:
+;;  a) 
+(defn get-vertices [v direction labels]
+  (case direction
+    ;;:in (get-in-edges v labels)
+    ;;:out (get-out-edges v labels)
+    :both (d/q '[:find ?ov 
+                 :in $ ?v [?out ?in] [?label ...]
+                 :where [?e ?out ?v]
+                        [?e ?in ?ov] ;; this is WRONG!
+                        [?e graph.edge/label ?label]]
+               dbval
+               v
+               (:graph.edge/outVertex :graph.edge/inVertex)
+               labels)))
 
 (defn id-from-uuid [uuid]
   (d/q '[:find ?v 
