@@ -73,16 +73,16 @@
 ;;  a) 
 (defn get-vertices [db v direction labels]
   (case direction
-    :in (d/q '[:find ?other
-               :in $ ?v [?label ...]
+    :in (d/q '[:find ?dir ?label ?other
+               :in $ ?v [?label ...] ?dir
                :where [?e :graph.edge/outVertex ?other]
                       [?e :graph.edge/inVertex ?v]
-                      [?e :graph.edge/label ?label]] db v labels)
-    :out (d/q '[:find ?other
-               :in $ ?v [?label ...]
+                      [?e :graph.edge/label ?label]] db v labels :in)
+    :out (d/q '[:find ?dir ?label ?other
+               :in $ ?v [?label ...] ?dir
                :where [?e :graph.edge/inVertex ?other]
                       [?e :graph.edge/outVertex ?v]
-                      [?e :graph.edge/label ?label]] db v labels)
+                      [?e :graph.edge/label ?label]] db v labels :out)
     :both (concat 
             (into [] (get-vertices db v :out labels))
             (into [] (get-vertices db v :in labels)))))
@@ -122,4 +122,9 @@
 
 (def knowsEdge
   (ffirst (id-from-uuid dbval #uuid "550e8400-e29b-41d4-a716-446655440002")))
+
+;; Temp, add a couple of duplicate edges!
+(d/transact conn (add-edge (d/squuid) marko stephen "likes"))
+;; Self reference to marko
+(d/transact conn (add-edge (d/squuid) marko marko "knows"))
 
