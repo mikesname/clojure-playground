@@ -31,71 +31,95 @@
 
 (def dbval (d/db conn))
 
-(defn list-elements [element-type]
+(defn list-elements [db element-type]
   (d/q '[:find ?v ?uuid
          :in $ ?t
          :where [?v :graph.element/type ?t]
-                [?v :graph.element/id ?uuid]] dbval element-type))
+                [?v :graph.element/id ?uuid]] db element-type))
 
-(defn list-vertices []
-  (list-elements :graph.element.type/vertex))
+(defn list-vertices [db]
+  (list-elements db :graph.element.type/vertex))
 
-(defn list-edges []
-  (list-elements :graph.element.type/edge))
+(defn list-edges [db]
+  (list-elements db :graph.element.type/edge))
 
-(defn get-out-edges [v labels]
+(defn get-out-edges [db v labels]
   (d/q '[:find ?edge ?uuid
          :in $ ?id [?label ...]
          :where [?edge :graph.edge/outVertex ?id]
                 [?edge :graph.element/id ?uuid ]
-                [ ?edge :graph.edge/label ?label ]] dbval v labels))
+                [ ?edge :graph.edge/label ?label ]] db v labels))
 
-(defn get-in-edges [v labels]
+(defn get-in-edges [db v labels]
   (d/q '[:find ?edge ?uuid
          :in $ ?id [?label ...]
          :where [?edge :graph.edge/inVertex ?id]
                 [?edge :graph.element/id ?uuid ]
-                [ ?edge :graph.edge/label ?label ]] dbval v labels))
+                [ ?edge :graph.edge/label ?label ]] db v labels))
 
 ;; NB: Fails if there are no labels!
-(defn get-edges [v direction labels]
+(defn get-edges [db v direction labels]
   (case direction
-    :in (get-in-edges v labels)
-    :out (get-out-edges v labels)
+    :in (get-in-edges db v labels)
+    :out (get-out-edges db v labels)
     :both (d/q '[:find ?e 
                  :in $ ?v [?d ...] [?label ...]
                  :where [?e ?d ?v]
                         [?e graph.edge/label ?label]]
-               dbval v [:graph.edge/outVertex :graph.edge/inVertex] labels)))
+               db v [:graph.edge/outVertex :graph.edge/inVertex] labels)))
 
 ;; The elusive get-vertices function. This is complicated in the
 ;; BOTH direction because:
 ;;  a) 
-(defn get-vertices [v direction labels]
+(defn get-vertices [db v direction labels]
   (case direction
-    ;;:in (get-in-edges v labels)
-    ;;:out (get-out-edges v labels)
-    :both (d/q '[:find ?ov 
-                 :in $ ?v [?out ?in] [?label ...]
-                 :where [?e ?out ?v]
-                        [?e ?in ?ov] ;; this is WRONG!
-                        [?e graph.edge/label ?label]]
-               dbval
-               v
-               (:graph.edge/outVertex :graph.edge/inVertex)
-               labels)))
+    :in (d/q '[:find ?other
+               :in $ ?v [?label ...]
+               :where [?e :graph.edge/outVertex ?other]
+                      [?e :graph.edge/inVertex ?v]
+                      [?e :graph.edge/label ?label]] db v labels)
+    :out (d/q '[:find ?other
+               :in $ ?v [?label ...]
+               :where [?e :graph.edge/inVertex ?other]
+                      [?e :graph.edge/outVertex ?v]
+                      [?e :graph.edge/label ?label]] db v labels)
+    :both (concat 
+            (into [] (get-vertices db v :out labels))
+            (into [] (get-vertices db v :in labels)))))
 
-(defn id-from-uuid [uuid]
+(defn add-vertex [uuid]
+  (let [tid (d/tempid :graph)]
+    [{:db/id tid
+     :graph.element/id uuid
+     :graph.element/type :graph.element.type/edge}]))
+
+(defn get-property [db element property-type]
+  (property-type (d/entity db element)))
+
+(defn add-property [element property-type value]
+  [{:db/id element property-type value}])
+
+(defn add-edge [uuid out-vertex in-vertex label]
+  (let [tid (d/tempid :graph)]
+    [{:db/id tid
+     :graph.element/id uuid
+     :graph.element/type :graph.element.type/edge
+     :graph.edge/outVertex out-vertex
+     :graph.edge/inVertex in-vertex
+     :graph.edge/label label}]))
+
+
+(defn id-from-uuid [db uuid]
   (d/q '[:find ?v 
          :in $ ?uuid 
-         :where [?v :graph.element/id ?uuid]] dbval uuid))
+         :where [?v :graph.element/id ?uuid]] db uuid))
 
 (def marko
-  (ffirst (id-from-uuid #uuid "550e8400-e29b-41d4-a716-446655440000")))
+  (ffirst (id-from-uuid dbval #uuid "550e8400-e29b-41d4-a716-446655440000")))
 
 (def stephen
-  (ffirst (id-from-uuid #uuid "550e8400-e29b-41d4-a716-446655440001")))
+  (ffirst (id-from-uuid dbval #uuid "550e8400-e29b-41d4-a716-446655440001")))
 
 (def knowsEdge
-  (ffirst (id-from-uuid #uuid "550e8400-e29b-41d4-a716-446655440002")))
+  (ffirst (id-from-uuid dbval #uuid "550e8400-e29b-41d4-a716-446655440002")))
 
